@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TestLab - API & Frontend Testing Workbench</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          },
+          fontFamily: {
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Prism.js for code syntax highlight preview -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
+  <style>
+    /* Custom scrollbars for high-density developer consoles */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(100, 116, 139, 0.1);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.35);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.55);
+    }
+    .status-badge-2xx { background: #059669; color: white; }
+    .status-badge-3xx { background: #0284c7; color: white; }
+    .status-badge-4xx { background: #d97706; color: white; }
+    .status-badge-5xx { background: #dc2626; color: white; }
+  </style>
+</head>
+
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col transition-colors duration-200 selection:bg-brand-500 selection:text-white">
+
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-40 px-4 lg:px-6 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-gradient-to-tr from-brand-600 to-indigo-500 p-2 rounded-xl text-white shadow-lg shadow-brand-500/20">
+          <i data-lucide="terminal" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            TestLab <span class="text-xs px-2 py-0.5 rounded-full font-mono bg-brand-500/20 text-brand-400 border border-brand-500/30">v1.2.0</span>
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">Frontend & API Testing Playground</p>
+        </div>
+      </div>
+
+      <!-- Quick status indicator & Theme switch -->
+      <div class="flex items-center gap-3">
+        <div id="network-pill" class="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="network-pill-text">ONLINE</span>
+        </div>
+
+        <button id="theme-toggle-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Toggle Theme">
+          <i data-lucide="sun" id="theme-icon" class="w-4 h-4"></i>
+        </button>
+
+        <a href="#quick-guide" onclick="showInfoModal()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Info & Docs">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto mt-3 overflow-x-auto flex gap-1 border-t border-slate-800/80 pt-2">
+      <button class="nav-tab active flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition text-brand-400 bg-slate-800" data-target="tab-api">
+        <i data-lucide="send" class="w-4 h-4"></i> HTTP / API Client
+      </button>
+      <button class="nav-tab flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" data-target="tab-form">
+        <i data-lucide="check-square" class="w-4 h-4"></i> Form & DOM Validator
+      </button>
+      <button class="nav-tab flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" data-target="tab-mock">
+        <i data-lucide="sliders" class="w-4 h-4"></i> Mock & Network Simulation
+      </button>
+      <button class="nav-tab flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" data-target="tab-storage">
+        <i data-lucide="database" class="w-4 h-4"></i> Storage & Benchmarks
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 space-y-6">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: REST API / HTTP TESTER             -->
+    <!-- ========================================== -->
+    <section id="tab-api" class="tab-content space-y-6">
+      <!-- Quick Presets -->
+      <div class="flex flex-wrap items-center gap-2 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800">
+        <span class="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1.5 mr-2">
+          <i data-lucide="bookmark" class="w-3.5 h-3.5"></i> Presets:
+        </span>
+        <button onclick="loadPreset('jsonplaceholder_users')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono transition">GET Users (JSONPlaceholder)</button>
+        <button onclick="loadPreset('jsonplaceholder_create')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono transition">POST Post (Create)</button>
+        <button onclick="loadPreset('httpbin_headers')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono transition">GET Headers Echo</button>
+        <button onclick="loadPreset('delayed_test')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono transition">2s Delay Latency</button>
+        <button onclick="loadPreset('fail_test')" class="px-2.5 py-1 rounded bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 font-mono transition">404 Error Test</button>
+      </div>
+
+      <!-- Main Request Bar -->
+      <div class="bg-slate-950 rounded-2xl border border-slate-800 p-4 shadow-xl">
+        <div class="flex flex-col md:flex-row gap-3">
+          <div class="flex items-center gap-2 md:w-36">
+            <select id="api-method" class="w-full bg-slate-900 border border-slate-700 font-mono font-bold text-sm rounded-xl px-3 py-2.5 text-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="GET" class="text-emerald-400">GET</option>
+              <option value="POST" class="text-blue-400">POST</option>
+              <option value="PUT" class="text-amber-400">PUT</option>
+              <option value="PATCH" class="text-violet-400">PATCH</option>
+              <option value="DELETE" class="text-rose-400">DELETE</option>
+              <option value="HEAD" class="text-gray-400">HEAD</option>
+            </select>
+          </div>
+          <div class="flex-1 relative">
+            <input type="url" id="api-url" value="https://jsonplaceholder.typicode.com/users/1" placeholder="https://api.example.com/endpoint" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
+          <button id="api-send-btn" onclick="executeApiRequest()" class="bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:scale-95 text-white font-medium px-6 py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-brand-500/25 transition">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Send</span>
+          </button>
+        </div>
+
+        <!-- Request Details Subtabs: Headers, Body, Params -->
+        <div class="mt-4 pt-4 border-t border-slate-800/80">
+          <div class="flex gap-4 border-b border-slate-800 pb-2 text-xs font-semibold">
+            <button onclick="switchReqTab('headers')" id="req-tab-btn-headers" class="text-brand-400 border-b-2 border-brand-400 pb-1">Headers (<span id="header-count">2</span>)</button>
+            <button onclick="switchReqTab('body')" id="req-tab-btn-body" class="text-slate-400 hover:text-slate-200 pb-1">Request Body (JSON)</button>
+            <button onclick="switchReqTab('params')" id="req-tab-btn-params" class="text-slate-400 hover:text-slate-200 pb-1">Query Params</button>
+          </div>
+
+          <!-- Headers Section -->
+          <div id="req-pane-headers" class="pt-3 space-y-2">
+            <div id="headers-list" class="space-y-2">
+              <!-- populated by JS -->
+            </div>
+            <button onclick="addHeaderRow()" class="text-xs text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1 mt-2">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Header
+            </button>
+          </div>
+
+          <!-- Body Section -->
+          <div id="req-pane-body" class="pt-3 hidden space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">Content-Type: application/json</span>
+              <button onclick="formatRequestBody()" class="text-brand-400 hover:text-brand-300 font-mono text-xs">Format / Beautify JSON</button>
+            </div>
+            <textarea id="api-body-input" rows="5" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-mono text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500" placeholder='{ "title": "foo", "body": "bar", "userId": 1 }'></textarea>
+          </div>
+
+          <!-- Params Section -->
+          <div id="req-pane-params" class="pt-3 hidden space-y-2">
+            <div id="params-list" class="space-y-2"></div>
+            <button onclick="addParamRow()" class="text-xs text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1 mt-2">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Query Param
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Inspector -->
+      <div class="bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Response Inspector</h2>
+            <div id="res-status-badge" class="hidden text-xs font-mono font-bold px-2.5 py-0.5 rounded-full"></div>
+            <span id="res-time-badge" class="hidden text-xs font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800"></span>
+            <span id="res-size-badge" class="hidden text-xs font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="copyResponseToClipboard()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Raw
+            </button>
+            <button onclick="clearResponseView()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-rose-300 flex items-center gap-1.5 transition">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Response sub-tabs: Preview, Headers, Meta -->
+        <div class="flex gap-4 text-xs font-semibold border-b border-slate-800 pb-2">
+          <button onclick="switchResTab('body')" id="res-tab-btn-body" class="text-brand-400 border-b-2 border-brand-400 pb-1">Response Body</button>
+          <button onclick="switchResTab('headers')" id="res-tab-btn-headers" class="text-slate-400 hover:text-slate-200 pb-1">Response Headers</button>
+        </div>
+
+        <div id="res-pane-body" class="relative">
+          <div id="res-placeholder" class="text-center py-14 text-slate-500 text-xs font-mono">
+            No response yet. Configure parameters above and hit <span class="text-brand-400">Send</span>.
+          </div>
+          <div id="res-loading" class="hidden text-center py-14">
+            <div class="inline-block animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full mb-2"></div>
+            <p class="text-xs text-slate-400 font-mono">Dispatching request & waiting for reply...</p>
+          </div>
+          <pre id="res-code-container" class="hidden rounded-xl bg-slate-900 p-4 overflow-x-auto text-xs font-mono max-h-96 border border-slate-800"><code id="res-code-block" class="language-json"></code></pre>
+        </div>
+
+        <div id="res-pane-headers" class="hidden">
+          <div id="res-headers-table" class="space-y-1 font-mono text-xs max-h-80 overflow-y-auto">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: FORM & DOM VALIDATION TESTER        -->
+    <!-- ========================================== -->
+    <section id="tab-form" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Interactive Form Column -->
+        <div class="lg:col-span-7 bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4">
+          <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+            <div>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Live Form Validation Studio</h2>
+              <p class="text-xs text-slate-400">Test real-time validation triggers, patterns, and dynamic input states</p>
+            </div>
+            <button onclick="resetTestForm()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300">Reset Form</button>
+          </div>
+
+          <form id="test-sandbox-form" onsubmit="handleSandboxSubmit(event)" novalidate class="space-y-4">
+            <!-- Email Field with live RFC pattern check -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Email Address <span class="text-rose-400">*</span></label>
+              <input type="email" id="form-field-email" placeholder="dev@example.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono text-slate-200" />
+              <div id="err-form-email" class="text-rose-400 text-xs mt-1 hidden flex items-center gap-1">
+                <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> Invalid email address.
+              </div>
+            </div>
+
+            <!-- Password with custom complexity validator -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Password Strength Tester</label>
+              <input type="password" id="form-field-pwd" placeholder="Min 8 chars, 1 digit, 1 special char" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono text-slate-200" />
+              <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div id="pwd-strength-bar" class="w-0 h-full bg-rose-500 transition-all duration-300"></div>
+              </div>
+              <div id="pwd-strength-label" class="text-[11px] text-slate-400 mt-1">Strength: Enter password</div>
+            </div>
+
+            <!-- Custom RegEx Tester Input -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Target Regex Pattern</label>
+                <input type="text" id="form-field-regex-pattern" value="^[A-Z]{3}-\d{4}$" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-brand-400 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Matched Text (e.g. ABC-1234)</label>
+                <input type="text" id="form-field-regex-value" placeholder="ABC-9999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+            </div>
+            <div id="regex-match-pill" class="text-xs font-mono text-slate-400">Match status: Not evaluated</div>
+
+            <!-- File Upload & Metadata Analyzer -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">File Analyzer (MIME, Blob size)</label>
+              <input type="file" id="form-field-file" onchange="handleFileInspect(event)" class="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500 cursor-pointer" />
+              <div id="file-meta-box" class="mt-2 hidden text-xs font-mono bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-slate-300"></div>
+            </div>
+
+            <!-- Sliders and Toggles -->
+            <div class="grid grid-cols-2 gap-4 pt-2">
+              <div>
+                <label class="flex justify-between text-xs text-slate-300 mb-1">
+                  <span>Range Slider</span>
+                  <span id="range-val" class="font-mono text-brand-400">50</span>
+                </label>
+                <input type="range" id="form-field-range" min="0" max="100" value="50" oninput="document.getElementById('range-val').innerText = this.value; logDomEvent('range-change', { value: this.value });" class="w-full accent-brand-500" />
+              </div>
+              <div class="flex items-center gap-3 pt-4">
+                <input type="checkbox" id="form-field-agree" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 border-slate-700 bg-slate-900" />
+                <label for="form-field-agree" class="text-xs text-slate-300">Accept Terms / Flags</label>
+              </div>
+            </div>
+
+            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-brand-400 border border-slate-700 hover:border-brand-500/50 py-2.5 rounded-xl font-medium text-xs tracking-wider uppercase transition flex items-center justify-center gap-2">
+              <i data-lucide="check" class="w-4 h-4"></i> Validate & Submit
+            </button>
+          </form>
+        </div>
+
+        <!-- Live DOM Event & Observer Monitor -->
+        <div class="lg:col-span-5 bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl flex flex-col h-[520px]">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">DOM Event Logger</h3>
+            </div>
+            <button onclick="clearEventLogs()" class="text-xs text-slate-400 hover:text-rose-400 transition">Clear Log</button>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400">Tracks real-time keyboard events, focus, blurs, and validation triggers.</div>
+          <div id="event-log-container" class="flex-1 overflow-y-auto mt-3 space-y-1.5 font-mono text-xs pr-1">
+            <!-- Dynamic stream of logged DOM events -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: NETWORK & MOCK SIMULATION           -->
+    <!-- ========================================== -->
+    <section id="tab-mock" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Network Fault & Latency Injector -->
+        <div class="bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <i data-lucide="wifi" class="w-4 h-4 text-brand-400"></i> Network Environment Mock
+            </h2>
+            <p class="text-xs text-slate-400">Simulate bad connectivity, throttle latency, or force offline state</p>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Artificial Latency Simulator</label>
+              <select id="mock-latency-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+                <option value="0">0ms - No Throttling</option>
+                <option value="400">400ms - Fast 3G / Low Latency</option>
+                <option value="1500">1500ms - Slow 3G / High Latency</option>
+                <option value="3500">3500ms - Extreme Lag / Timeout Edge</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Status Code Fault Injection</label>
+              <select id="mock-fault-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+                <option value="none">None - Transparent Pass-Through</option>
+                <option value="400">Force 400 Bad Request</option>
+                <option value="401">Force 401 Unauthorized</option>
+                <option value="404">Force 404 Not Found</option>
+                <option value="500">Force 500 Internal Server Error</option>
+                <option value="503">Force 503 Service Unavailable</option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div>
+                <div class="text-xs font-semibold text-slate-200">Simulate Offline Mode</div>
+                <div class="text-[11px] text-slate-400">Interrupts outgoing fetch immediately</div>
+              </div>
+              <input type="checkbox" id="mock-offline-toggle" onchange="toggleMockOffline(this.checked)" class="w-4 h-4 accent-brand-500 rounded" />
+            </div>
+
+            <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-400 font-mono">
+              Status: <span id="mock-status-text" class="text-emerald-400 font-bold">Standard Network (Real)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-time Echo & Stream WebSocket Tester -->
+        <div class="bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4 flex flex-col h-[460px]">
+          <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+            <div>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <i data-lucide="radio" class="w-4 h-4 text-violet-400"></i> WebSocket Echo Client
+              </h2>
+              <p class="text-xs text-slate-400">Live duplex connection to public echo socket</p>
+            </div>
+            <div id="ws-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">DISCONNECTED</div>
+          </div>
+
+          <div class="flex gap-2">
+            <input type="text" id="ws-url-input" value="wss://echo.websocket.events" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200" />
+            <button id="ws-toggle-btn" onclick="toggleWebSocketConnection()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium transition">Connect</button>
+          </div>
+
+          <div class="flex gap-2">
+            <input type="text" id="ws-msg-input" placeholder="Type message to broadcast..." disabled class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50" />
+            <button id="ws-send-btn" onclick="sendWsMessage()" disabled class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium disabled:opacity-50">Send</button>
+          </div>
+
+          <div id="ws-feed" class="flex-1 bg-slate-900 rounded-xl p-3 overflow-y-auto space-y-1.5 font-mono text-xs border border-slate-800">
+            <div class="text-slate-500 text-center py-6">Connect to start streaming duplex messages.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: STORAGE & PERFORMANCE BENCHMARK     -->
+    <!-- ========================================== -->
+    <section id="tab-storage" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Storage Inspector Column -->
+        <div class="lg:col-span-7 bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Client Storage Inspector</h2>
+              <p class="text-xs text-slate-400">View and manipulate LocalStorage, SessionStorage & Cookies</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <select id="storage-type-select" onchange="refreshStorageTable()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200">
+                <option value="local">LocalStorage</option>
+                <option value="session">SessionStorage</option>
+                <option value="cookies">Cookies</option>
+              </select>
+              <button onclick="refreshStorageTable()" class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300" title="Refresh">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Add / Edit item row -->
+          <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Set Key / Value</span>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input type="text" id="storage-new-key" placeholder="Key (e.g. auth_token)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 flex-1 font-mono" />
+              <input type="text" id="storage-new-val" placeholder="Value (e.g. true, json, string)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 flex-1 font-mono" />
+              <button onclick="saveStorageItem()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium">Save</button>
+            </div>
+          </div>
+
+          <!-- Items list -->
+          <div class="overflow-x-auto max-h-72 border border-slate-800 rounded-xl">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-2.5">Key</th>
+                  <th class="p-2.5">Value</th>
+                  <th class="p-2.5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="storage-table-body" class="divide-y divide-slate-800/60 text-slate-300">
+                <!-- populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="flex justify-between items-center pt-2">
+            <span id="storage-summary" class="text-xs text-slate-500 font-mono">0 items found</span>
+            <button onclick="clearCurrentStorage()" class="text-xs text-rose-400 hover:text-rose-300">Clear All in Scope</button>
+          </div>
+        </div>
+
+        <!-- JS Performance & Benchmark Workbench -->
+        <div class="lg:col-span-5 bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl space-y-4">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">JS Micro-Benchmark Runner</h2>
+            <p class="text-xs text-slate-400">Measure operation execution time and array iterations in the browser runtime</p>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Iteration Count</label>
+              <select id="bench-iterations" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">
+                <option value="10000">10,000 Ops</option>
+                <option value="100000" selected>100,000 Ops</option>
+                <option value="500000">500,000 Ops</option>
+                <option value="1000000">1,000,000 Ops (Heavy)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Test Suite Type</label>
+              <select id="bench-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">
+                <option value="json">JSON.stringify & Parse Roundtrip</option>
+                <option value="regex">Complex Regex Pattern Matching</option>
+                <option value="array">Array Filter, Map & Reduce Pipeline</option>
+                <option value="sort">Array Shuffle & Numerical Sort</option>
+              </select>
+            </div>
+
+            <button onclick="runBenchmark()" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-medium uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition">
+              <i data-lucide="zap" class="w-4 h-4"></i> Run Benchmark
+            </button>
+
+            <!-- Benchmark Results Card -->
+            <div id="bench-result-box" class="hidden bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2 font-mono text-xs">
+              <div class="text-emerald-400 font-bold flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Benchmark Complete
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-slate-300 pt-2 border-t border-slate-800">
+                <div>Elapsed Time:</div>
+                <div id="bench-time" class="font-bold text-white text-right">-</div>
+                <div>Ops / Second:</div>
+                <div id="bench-ops" class="font-bold text-brand-400 text-right">-</div>
+                <div>Memory Status:</div>
+                <div id="bench-mem" class="text-slate-400 text-right">Available</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Help & Guide Modal -->
+  <div id="info-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 max-w-lg w-full rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-100 flex items-center gap-2">
+          <i data-lucide="info" class="w-5 h-5 text-brand-400"></i> Workbench Overview
+        </h3>
+        <button onclick="closeInfoModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="text-xs text-slate-300 space-y-2.5 leading-relaxed">
+        <p><strong>1. HTTP & API Tester:</strong> Send real HTTP requests (CORS-friendly targets like JSONPlaceholder or your backend). Inspect response time, status codes, and formatted JSON.</p>
+        <p><strong>2. Form & DOM Validator:</strong> Test custom regex rules, dynamic password entropy, and file MIME inspecting with real-time DOM telemetry logging.</p>
+        <p><strong>3. Mock Network & WebSocket:</strong> Simulate bad latency, forced HTTP errors, or connect to live WebSocket echo relays.</p>
+        <p><strong>4. Storage & Benchmarking:</strong> Directly inspect and edit browser storage key-values and run browser engine micro-benchmarks.</p>
+      </div>
+      <button onclick="closeInfoModal()" class="w-full py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold">Got it</button>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      theme: 'dark',
+      headers: [
+        { key: 'Accept', value: 'application/json' },
+        { key: 'Content-Type', value: 'application/json' }
+      ],
+      queryParams: [],
+      mockOffline: false,
+      ws: null,
+      lastResponseRaw: ''
+    };
+
+    // Initialize icons and bindings
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      renderHeadersList();
+      renderParamsList();
+      refreshStorageTable();
+      setupFormValidationListeners();
+    });
+
+    // Tab navigation logic
+    document.querySelectorAll('.nav-tab').forEach(tabBtn => {
+      tabBtn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(btn => {
+          btn.classList.remove('active', 'text-brand-400', 'bg-slate-800');
+          btn.classList.add('text-slate-400');
+        });
+        tabBtn.classList.add('active', 'text-brand-400', 'bg-slate-800');
+        tabBtn.classList.remove('text-slate-400');
+
+        document.querySelectorAll('.tab-content').forEach(pane => pane.classList.add('hidden'));
+        const targetId = tabBtn.getAttribute('data-target');
+        const activePane = document.getElementById(targetId);
+        if (activePane) {
+          activePane.classList.remove('hidden');
+        }
+      });
+    });
+
+    // Theme Switcher (Dark / Light)
+    document.getElementById('theme-toggle-btn').addEventListener('click', () => {
+      const htmlEl = document.documentElement;
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        document.body.classList.remove('bg-slate-900', 'text-slate-100');
+        document.body.classList.add('bg-slate-100', 'text-slate-900');
+        document.getElementById('theme-icon').setAttribute('data-lucide', 'moon');
+      } else {
+        htmlEl.classList.add('dark');
+        document.body.classList.add('bg-slate-900', 'text-slate-100');
+        document.body.classList.remove('bg-slate-100', 'text-slate-900');
+        document.getElementById('theme-icon').setAttribute('data-lucide', 'sun');
+      }
+      lucide.createIcons();
+    });
+
+    // Modal display helpers
+    function showInfoModal() {
+      const modal = document.getElementById('info-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+    function closeInfoModal() {
+      const modal = document.getElementById('info-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function switchReqTab(type) {
+      ['headers', 'body', 'params'].forEach(t => {
+        document.getElementById(`req-pane-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`req-tab-btn-${t}`);
+        btn.classList.remove('text-brand-400', 'border-b-2', 'border-brand-400');
+        btn.classList.add('text-slate-400');
+      });
+      document.getElementById(`req-pane-${type}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`req-tab-btn-${type}`);
+      activeBtn.classList.add('text-brand-400', 'border-b-2', 'border-brand-400');
+      activeBtn.classList.remove('text-slate-400');
+    }
+
+    function switchResTab(type) {
+      ['body', 'headers'].forEach(t => {
+        document.getElementById(`res-pane-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`res-tab-btn-${t}`);
+        btn.classList.remove('text-brand-400', 'border-b-2', 'border-brand-400');
+        btn.classList.add('text-slate-400');
+      });
+      document.getElementById(`res-pane-${type}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`res-tab-btn-${type}`);
+      activeBtn.classList.add('text-brand-400', 'border-b-2', 'border-brand-400');
+      activeBtn.classList.remove('text-slate-400');
+    }
+
+    function renderHeadersList() {
+      const container = document.getElementById('headers-list');
+      container.innerHTML = '';
+      state.headers.forEach((h, idx) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2';
+        row.innerHTML = `
+          <input type="text" value="${escapeHtml(h.key)}" onchange="updateHeader(${idx}, 'key', this.value)" placeholder="Header Key" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-200 flex-1">
+          <input type="text" value="${escapeHtml(h.value)}" onchange="updateHeader(${idx}, 'value', this.value)" placeholder="Header Value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-200 flex-1">
+          <button onclick="removeHeaderRow(${idx})" class="text-slate-400 hover:text-rose-400 p-1"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>
+        `;
+        container.appendChild(row);
+      });
+      document.getElementById('header-count').innerText = state.headers.length;
+      lucide.createIcons();
+    }
+
+    function addHeaderRow() {
+      state.headers.push({ key: '', value: '' });
+      renderHeadersList();
+    }
+
+    function updateHeader(index, field, val) {
+      state.headers[index][field] = val;
+    }
+
+    function removeHeaderRow(index) {
+      state.headers.splice(index, 1);
+      renderHeadersList();
+    }
+
+    function renderParamsList() {
+      const container = document.getElementById('params-list');
+      container.innerHTML = '';
+      state.queryParams.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2';
+        row.innerHTML = `
+          <input type="text" value="${escapeHtml(p.key)}" onchange="updateParam(${idx}, 'key', this.value)" placeholder="Param Key" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-200 flex-1">
+          <input type="text" value="${escapeHtml(p.value)}" onchange="updateParam(${idx}, 'value', this.value)" placeholder="Param Value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-200 flex-1">
+          <button onclick="removeParamRow(${idx})" class="text-slate-400 hover:text-rose-400 p-1"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>
+        `;
+        container.appendChild(row);
+      });
+      lucide.createIcons();
+    }
+
+    function addParamRow() {
+      state.queryParams.push({ key: '', value: '' });
+      renderParamsList();
+    }
+
+    function updateParam(idx, field, val) {
+      state.queryParams[idx][field] = val;
+    }
+
+    function removeParamRow(idx) {
+      state.queryParams.splice(idx, 1);
+      renderParamsList();
+    }
+
+    function formatRequestBody() {
+      const ta = document.getElementById('api-body-input');
+      try {
+        if (!ta.value.trim()) return;
+        const parsed = JSON.parse(ta.value);
+        ta.value = JSON.stringify(parsed, null, 2);
+        showToast('JSON beautified', 'success');
+      } catch (err) {
+        showToast('Invalid JSON syntax: ' + err.message, 'error');
+      }
+    }
+
+    function loadPreset(type) {
+      const urlInput = document.getElementById('api-url');
+      const methodSelect = document.getElementById('api-method');
+      const bodyInput = document.getElementById('api-body-input');
+
+      if (type === 'jsonplaceholder_users') {
+        methodSelect.value = 'GET';
+        urlInput.value = 'https://jsonplaceholder.typicode.com/users';
+        bodyInput.value = '';
+      } else if (type === 'jsonplaceholder_create') {
+        methodSelect.value = 'POST';
+        urlInput.value = 'https://jsonplaceholder.typicode.com/posts';
+        bodyInput.value = JSON.stringify({
+          title: "Workbench Simulated Post",
+          body: "Payload crafted in TestLab SPA playground.",
+          userId: 101
+        }, null, 2);
+        switchReqTab('body');
+      } else if (type === 'httpbin_headers') {
+        methodSelect.value = 'GET';
+        urlInput.value = 'https://httpbin.org/headers';
+        bodyInput.value = '';
+      } else if (type === 'delayed_test') {
+        methodSelect.value = 'GET';
+        urlInput.value = 'https://httpbin.org/delay/2';
+        bodyInput.value = '';
+      } else if (type === 'fail_test') {
+        methodSelect.value = 'GET';
+        urlInput.value = 'https://jsonplaceholder.typicode.com/non-existent-endpoint-404';
+        bodyInput.value = '';
+      }
+      showToast(`Loaded preset: ${type}`, 'info');
+    }
+
+    async function executeApiRequest() {
+      if (state.mockOffline) {
+        showToast('Request blocked: Offline simulation is active', 'error');
+        renderMockOfflineError();
+        return;
+      }
+
+      const method = document.getElementById('api-method').value;
+      let url = document.getElementById('api-url').value.trim();
+      const body = document.getElementById('api-body-input').value.trim();
+
+      if (!url) {
+        showToast('Please provide a valid URL', 'error');
+        return;
+      }
+
+      // Append query params if any
+      const activeParams = state.queryParams.filter(p => p.key.trim().length > 0);
+      if (activeParams.length > 0) {
+        const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+        activeParams.forEach(p => urlObj.searchParams.append(p.key, p.value));
+        url = urlObj.toString();
+      }
+
+      // Check simulated fault code
+      const faultSelect = document.getElementById('mock-fault-select').value;
+      if (faultSelect !== 'none') {
+        simulateInjectedFault(parseInt(faultSelect));
+        return;
+      }
+
+      // Check simulated latency
+      const latencyMs = parseInt(document.getElementById('mock-latency-select').value) || 0;
+
+      // Prepare UI for in-flight state
+      document.getElementById('res-placeholder').classList.add('hidden');
+      document.getElementById('res-code-container').classList.add('hidden');
+      document.getElementById('res-loading').classList.remove('hidden');
+
+      const headersObj = {};
+      state.headers.forEach(h => {
+        if (h.key.trim()) headersObj[h.key] = h.value;
+      });
+
+      const options = {
+        method: method,
+        headers: headersObj
+      };
+
+      if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
+        options.body = body;
+      }
+
+      const startTime = performance.now();
+
+      try {
+        if (latencyMs > 0) {
+          await new Promise(r => setTimeout(r, latencyMs));
+        }
+
+        const res = await fetch(url, options);
+        const duration = Math.round(performance.now() - startTime);
+
+        const contentType = res.headers.get('content-type') || '';
+        let responseData;
+
+        if (contentType.includes('application/json')) {
+          responseData = await res.json();
+          renderResponseSuccess(res.status, res.statusText, duration, responseData, res.headers, 'json');
+        } else {
+          responseData = await res.text();
+          renderResponseSuccess(res.status, res.statusText, duration, responseData, res.headers, 'text');
+        }
+
+        logDomEvent('HTTP_FETCH_SUCCESS', { url, method, status: res.status, duration: `${duration}ms` });
+      } catch (err) {
+        const duration = Math.round(performance.now() - startTime);
+        renderResponseError(err.message, duration);
+        logDomEvent('HTTP_FETCH_ERROR', { url, message: err.message });
+      }
+    }
+
+    function renderResponseSuccess(status, statusText, duration, data, headers, type) {
+      document.getElementById('res-loading').classList.add('hidden');
+      document.getElementById('res-code-container').classList.remove('hidden');
+
+      // Badges
+      const badge = document.getElementById('res-status-badge');
+      badge.classList.remove('hidden', 'status-badge-2xx', 'status-badge-3xx', 'status-badge-4xx', 'status-badge-5xx');
+      badge.innerText = `${status} ${statusText || ''}`;
+
+      if (status >= 200 && status < 300) badge.classList.add('status-badge-2xx');
+      else if (status >= 300 && status < 400) badge.classList.add('status-badge-3xx');
+      else if (status >= 400 && status < 500) badge.classList.add('status-badge-4xx');
+      else badge.classList.add('status-badge-5xx');
+
+      const timeBadge = document.getElementById('res-time-badge');
+      timeBadge.classList.remove('hidden');
+      timeBadge.innerText = `${duration} ms`;
+
+      const formatted = type === 'json' ? JSON.stringify(data, null, 2) : data;
+      state.lastResponseRaw = formatted;
+
+      const sizeBadge = document.getElementById('res-size-badge');
+      sizeBadge.classList.remove('hidden');
+      sizeBadge.innerText = `${(new Blob([formatted]).size / 1024).toFixed(2)} KB`;
+
+      // Code element
+      const codeBlock = document.getElementById('res-code-block');
+      codeBlock.textContent = formatted;
+      Prism.highlightElement(codeBlock);
+
+      // Render headers
+      const headersContainer = document.getElementById('res-headers-table');
+      headersContainer.innerHTML = '';
+      if (headers && typeof headers.forEach === 'function') {
+        headers.forEach((val, key) => {
+          const row = document.createElement('div');
+          row.className = 'flex justify-between py-1 border-b border-slate-800/50';
+          row.innerHTML = `<span class="text-brand-400 font-semibold">${escapeHtml(key)}:</span> <span class="text-slate-300 break-all">${escapeHtml(val)}</span>`;
+          headersContainer.appendChild(row);
+        });
+      } else {
+        headersContainer.innerHTML = '<div class="text-slate-500">Headers unavailable.</div>';
+      }
+    }
+
+    function renderResponseError(errorMessage, duration) {
+      document.getElementById('res-loading').classList.add('hidden');
+      document.getElementById('res-code-container').classList.remove('hidden');
+
+      const badge = document.getElementById('res-status-badge');
+      badge.classList.remove('hidden', 'status-badge-2xx', 'status-badge-3xx', 'status-badge-4xx');
+      badge.classList.add('status-badge-5xx');
+      badge.innerText = 'Network Error';
+
+      const timeBadge = document.getElementById('res-time-badge');
+      timeBadge.classList.remove('hidden');
+      timeBadge.innerText = `${duration} ms`;
+
+      const codeBlock = document.getElementById('res-code-block');
+      const errPayload = {
+        error: "Fetch Request Failed",
+        details: errorMessage,
+        note: "Inspect browser console or verify CORS permission headers if calling third-party domains."
+      };
+      state.lastResponseRaw = JSON.stringify(errPayload, null, 2);
+      codeBlock.textContent = state.lastResponseRaw;
+      Prism.highlightElement(codeBlock);
+    }
+
+    function simulateInjectedFault(code) {
+      setTimeout(() => {
+        const descriptions = {
+          400: 'Bad Request - Injected by TestLab Simulation Engine',
+          401: 'Unauthorized - Missing Simulated Bearer Token',
+          404: 'Not Found - The requested mock resource was not discovered',
+          500: 'Internal Server Error - Simulated Unhandled Runtime Exception',
+          503: 'Service Unavailable - Simulated Upstream Outage'
+        };
+        const mockData = {
+          timestamp: new Date().toISOString(),
+          status: code,
+          error: descriptions[code] || 'Simulated Failure',
+          mockActive: true
+        };
+        renderResponseSuccess(code, descriptions[code].split(' ')[0], 45, mockData, null, 'json');
+        showToast(`Simulated fault status ${code} injected`, 'error');
+      }, 300);
+    }
+
+    function renderMockOfflineError() {
+      document.getElementById('res-loading').classList.add('hidden');
+      document.getElementById('res-code-container').classList.remove('hidden');
+      const badge = document.getElementById('res-status-badge');
+      badge.className = 'text-xs font-mono font-bold px-2.5 py-0.5 rounded-full status-badge-5xx';
+      badge.innerText = 'OFFLINE_ERR';
+
+      const errPayload = {
+        error: "ERR_INTERNET_DISCONNECTED",
+        message: "You toggled the simulator into Offline Mode. Outgoing connections are aborted.",
+        timestamp: new Date().toISOString()
+      };
+      state.lastResponseRaw = JSON.stringify(errPayload, null, 2);
+      const codeBlock = document.getElementById('res-code-block');
+      codeBlock.textContent = state.lastResponseRaw;
+      Prism.highlightElement(codeBlock);
+    }
+
+    function copyResponseToClipboard() {
+      if (!state.lastResponseRaw) {
+        showToast('Nothing to copy', 'info');
+        return;
+      }
+      // Use execCommand copy to support standard iframe contexts safely
+      const tempArea = document.createElement('textarea');
+      tempArea.value = state.lastResponseRaw;
+      tempArea.style.position = 'fixed';
+      tempArea.style.opacity = '0';
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Response payload copied to clipboard!', 'success');
+      } catch (err) {
+        showToast('Failed to copy', 'error');
+      } finally {
+        document.body.removeChild(tempArea);
+      }
+    }
+
+    function clearResponseView() {
+      state.lastResponseRaw = '';
+      document.getElementById('res-placeholder').classList.remove('hidden');
+      document.getElementById('res-code-container').classList.add('hidden');
+      document.getElementById('res-status-badge').classList.add('hidden');
+      document.getElementById('res-time-badge').classList.add('hidden');
+      document.getElementById('res-size-badge').classList.add('hidden');
+      document.getElementById('res-headers-table').innerHTML = '';
+      showToast('Cleared response view', 'info');
+    }
+
+    function setupFormValidationListeners() {
+      const emailField = document.getElementById('form-field-email');
+      const pwdField = document.getElementById('form-field-pwd');
+      const regexPatternField = document.getElementById('form-field-regex-pattern');
+      const regexValField = document.getElementById('form-field-regex-value');
+
+      // Email real-time validator
+      emailField.addEventListener('input', (e) => {
+        const val = e.target.value;
+        const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+        const errEl = document.getElementById('err-form-email');
+        if (val.length > 0 && !valid) {
+          errEl.classList.remove('hidden');
+          emailField.classList.add('border-rose-500');
+        } else {
+          errEl.classList.add('hidden');
+          emailField.classList.remove('border-rose-500');
+        }
+        logDomEvent('email-input', { value: val, isValid: valid });
+      });
+
+      // Password complexity entropy meter
+      pwdField.addEventListener('input', (e) => {
+        const val = e.target.value;
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+
+        const bar = document.getElementById('pwd-strength-bar');
+        const label = document.getElementById('pwd-strength-label');
+
+        const colors = ['bg-rose-500', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500'];
+        const labels = ['Weak', 'Moderate', 'Strong', 'Very Robust'];
+        const widths = ['25%', '50%', '75%', '100%'];
+
+        if (val.length === 0) {
+          bar.style.width = '0%';
+          label.innerText = 'Strength: Enter password';
+        } else {
+          const idx = Math.min(score, 3);
+          bar.style.width = widths[idx];
+          bar.className = `h-full transition-all duration-300 ${colors[idx]}`;
+          label.innerText = `Strength: ${labels[idx]} (${val.length} chars)`;
+        }
+        logDomEvent('pwd-entropy', { length: val.length, score });
+      });
+
+      // RegEx dynamic pattern match tester
+      const testRegex = () => {
+        const patternStr = regexPatternField.value;
+        const targetVal = regexValField.value;
+        const pill = document.getElementById('regex-match-pill');
+
+        try {
+          const reg = new RegExp(patternStr);
+          const isMatch = reg.test(targetVal);
+          if (isMatch) {
+            pill.innerHTML = `<span class="text-emerald-400 font-bold">✔ Matches pattern: "${patternStr}"</span>`;
+          } else {
+            pill.innerHTML = `<span class="text-amber-400">✘ Does not match "${patternStr}"</span>`;
+          }
+          logDomEvent('regex-eval', { pattern: patternStr, testValue: targetVal, match: isMatch });
+        } catch (err) {
+          pill.innerHTML = `<span class="text-rose-400">Invalid Regular Expression syntax</span>`;
+        }
+      };
+
+      regexPatternField.addEventListener('input', testRegex);
+      regexValField.addEventListener('input', testRegex);
+    }
+
+    function handleFileInspect(e) {
+      const file = e.target.files[0];
+      const box = document.getElementById('file-meta-box');
+      if (!file) {
+        box.classList.add('hidden');
+        return;
+      }
+      box.classList.remove('hidden');
+      box.innerHTML = `
+        <div class="text-brand-400 font-semibold mb-1">File Inspection Details:</div>
+        <div>Name: ${escapeHtml(file.name)}</div>
+        <div>MIME: ${escapeHtml(file.type || 'unknown/binary')}</div>
+        <div>Size: ${(file.size / 1024).toFixed(2)} KB (${file.size} bytes)</div>
+        <div>Last Modified: ${new Date(file.lastModified).toLocaleString()}</div>
+      `;
+      logDomEvent('file-select', { name: file.name, size: file.size, type: file.type });
+    }
+
+    function handleSandboxSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('form-field-email').value;
+      const terms = document.getElementById('form-field-agree').checked;
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('Form validation failed: check Email field', 'error');
+        return;
+      }
+
+      showToast('Form validation passed! Data collected.', 'success');
+      logDomEvent('FORM_SUBMIT_SUCCESS', { email, termsAccepted: terms });
+    }
+
+    function resetTestForm() {
+      document.getElementById('test-sandbox-form').reset();
+      document.getElementById('file-meta-box').classList.add('hidden');
+      document.getElementById('pwd-strength-bar').style.width = '0%';
+      document.getElementById('pwd-strength-label').innerText = 'Strength: Enter password';
+      document.getElementById('range-val').innerText = '50';
+      document.getElementById('regex-match-pill').innerText = 'Match status: Not evaluated';
+      document.getElementById('err-form-email').classList.add('hidden');
+      showToast('Form reset', 'info');
+      logDomEvent('FORM_RESET', {});
+    }
+
+    function logDomEvent(eventType, metadata) {
+      const container = document.getElementById('event-log-container');
+      const item = document.createElement('div');
+      item.className = 'p-1.5 rounded bg-slate-900/90 border border-slate-800 text-[11px] flex justify-between items-start';
+
+      const timeStr = new Date().toLocaleTimeString();
+      item.innerHTML = `
+        <div>
+          <span class="text-brand-400 font-semibold">${escapeHtml(eventType)}</span>
+          <span class="text-slate-400 block">${escapeHtml(JSON.stringify(metadata))}</span>
+        </div>
+        <span class="text-[10px] text-slate-500 whitespace-nowrap ml-2">${timeStr}</span>
+      `;
+      container.prepend(item);
+
+      // Limit log entries
+      if (container.children.length > 50) {
+        container.removeChild(container.lastChild);
+      }
+    }
+
+    function clearEventLogs() {
+      document.getElementById('event-log-container').innerHTML = '';
+      showToast('Event logger cleared', 'info');
+    }
+
+    function toggleMockOffline(isOffline) {
+      state.mockOffline = isOffline;
+      const pill = document.getElementById('network-pill');
+      const pillText = document.getElementById('network-pill-text');
+      const statusText = document.getElementById('mock-status-text');
+
+      if (isOffline) {
+        pill.className = 'flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-rose-500/10 text-rose-400 border border-rose-500/30';
+        pillText.innerText = 'OFFLINE (MOCK)';
+        statusText.innerText = 'Mock Offline Enabled (Active blocking)';
+        statusText.className = 'text-rose-400 font-bold';
+        showToast('Simulated Offline Mode Enabled', 'info');
+      } else {
+        pill.className = 'flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+        pillText.innerText = 'ONLINE';
+        statusText.innerText = 'Standard Network (Real)';
+        statusText.className = 'text-emerald-400 font-bold';
+        showToast('Online status restored', 'success');
+      }
+    }
+
+    function toggleWebSocketConnection() {
+      const btn = document.getElementById('ws-toggle-btn');
+      const badge = document.getElementById('ws-badge');
+      const url = document.getElementById('ws-url-input').value.trim();
+
+      if (state.ws) {
+        state.ws.close();
+        state.ws = null;
+        btn.innerText = 'Connect';
+        btn.className = 'px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium';
+        badge.innerText = 'DISCONNECTED';
+        badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+        document.getElementById('ws-msg-input').disabled = true;
+        document.getElementById('ws-send-btn').disabled = true;
+        appendWsLog('System', 'Connection closed by user.');
+        return;
+      }
+
+      try {
+        appendWsLog('System', `Initiating handshake to ${url}...`);
+        state.ws = new WebSocket(url);
+
+        state.ws.onopen = () => {
+          btn.innerText = 'Disconnect';
+          btn.className = 'px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-medium';
+          badge.innerText = 'CONNECTED';
+          badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+          document.getElementById('ws-msg-input').disabled = false;
+          document.getElementById('ws-send-btn').disabled = false;
+          appendWsLog('System', 'Connected! WebSocket duplex channel active.');
+        };
+
+        state.ws.onmessage = (event) => {
+          appendWsLog('Received', event.data);
+        };
+
+        state.ws.onerror = (err) => {
+          appendWsLog('Error', 'WebSocket encountering connection exception.');
+        };
+
+        state.ws.onclose = () => {
+          btn.innerText = 'Connect';
+          btn.className = 'px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-medium';
+          badge.innerText = 'DISCONNECTED';
+          badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+          document.getElementById('ws-msg-input').disabled = true;
+          document.getElementById('ws-send-btn').disabled = true;
+          state.ws = null;
+        };
+      } catch (err) {
+        showToast('WebSocket error: ' + err.message, 'error');
+        appendWsLog('Error', err.message);
+      }
+    }
+
+    function sendWsMessage() {
+      const input = document.getElementById('ws-msg-input');
+      const msg = input.value.trim();
+      if (!msg || !state.ws) return;
+
+      state.ws.send(msg);
+      appendWsLog('Sent', msg);
+      input.value = '';
+    }
+
+    function appendWsLog(direction, text) {
+      const feed = document.getElementById('ws-feed');
+      const row = document.createElement('div');
+      row.className = 'text-xs break-all';
+
+      if (direction === 'Sent') {
+        row.innerHTML = `<span class="text-brand-400 font-semibold">[OUT]:</span> <span class="text-slate-200">${escapeHtml(text)}</span>`;
+      } else if (direction === 'Received') {
+        row.innerHTML = `<span class="text-emerald-400 font-semibold">[IN]:</span> <span class="text-slate-200">${escapeHtml(text)}</span>`;
+      } else {
+        row.innerHTML = `<span class="text-amber-400 font-semibold">[SYS]:</span> <span class="text-slate-400">${escapeHtml(text)}</span>`;
+      }
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function refreshStorageTable() {
+      const type = document.getElementById('storage-type-select').value;
+      const tbody = document.getElementById('storage-table-body');
+      tbody.innerHTML = '';
+
+      let items = [];
+
+      try {
+        if (type === 'local') {
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            items.push({ key: k, value: localStorage.getItem(k) });
+          }
+        } else if (type === 'session') {
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const k = sessionStorage.key(i);
+            items.push({ key: k, value: sessionStorage.getItem(k) });
+          }
+        } else if (type === 'cookies') {
+          const cookieStr = document.cookie;
+          if (cookieStr) {
+            cookieStr.split(';').forEach(c => {
+              const [k, v] = c.split('=');
+              if (k) items.push({ key: k.trim(), value: (v || '').trim() });
+            });
+          }
+        }
+      } catch (e) {
+        showToast('Storage access error: ' + e.message, 'error');
+      }
+
+      document.getElementById('storage-summary').innerText = `${items.length} items found`;
+
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">No entries in ${type}</td></tr>`;
+        return;
+      }
+
+      items.forEach(it => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-900/50 transition';
+        tr.innerHTML = `
+          <td class="p-2.5 font-bold text-brand-400 break-all">${escapeHtml(it.key)}</td>
+          <td class="p-2.5 text-slate-300 break-all max-w-xs truncate">${escapeHtml(it.value)}</td>
+          <td class="p-2.5 text-right whitespace-nowrap">
+            <button onclick="deleteStorageItem('${escapeHtml(it.key)}')" class="text-slate-400 hover:text-rose-400 p-1"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function saveStorageItem() {
+      const type = document.getElementById('storage-type-select').value;
+      const key = document.getElementById('storage-new-key').value.trim();
+      const val = document.getElementById('storage-new-val').value.trim();
+
+      if (!key) {
+        showToast('Key cannot be empty', 'error');
+        return;
+      }
+
+      try {
+        if (type === 'local') localStorage.setItem(key, val);
+        else if (type === 'session') sessionStorage.setItem(key, val);
+        else if (type === 'cookies') document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(val)};path=/;max-age=86400`;
+
+        document.getElementById('storage-new-key').value = '';
+        document.getElementById('storage-new-val').value = '';
+        refreshStorageTable();
+        showToast(`Saved to ${type}`, 'success');
+      } catch (err) {
+        showToast('Error saving: ' + err.message, 'error');
+      }
+    }
+
+    function deleteStorageItem(key) {
+      const type = document.getElementById('storage-type-select').value;
+      try {
+        if (type === 'local') localStorage.removeItem(key);
+        else if (type === 'session') sessionStorage.removeItem(key);
+        else if (type === 'cookies') document.cookie = `${encodeURIComponent(key)}=;path=/;max-age=0`;
+
+        refreshStorageTable();
+        showToast(`Removed "${key}"`, 'info');
+      } catch (err) {
+        showToast('Failed to delete', 'error');
+      }
+    }
+
+    function clearCurrentStorage() {
+      const type = document.getElementById('storage-type-select').value;
+      try {
+        if (type === 'local') localStorage.clear();
+        else if (type === 'session') sessionStorage.clear();
+        else if (type === 'cookies') {
+          document.cookie.split(";").forEach(c => {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+          });
+        }
+        refreshStorageTable();
+        showToast(`Cleared ${type}`, 'success');
+      } catch (err) {
+        showToast('Clear failed: ' + err.message, 'error');
+      }
+    }
+
+    // Micro-Benchmark Execution Engine
+    function runBenchmark() {
+      const iterations = parseInt(document.getElementById('bench-iterations').value);
+      const suite = document.getElementById('bench-type').value;
+
+      showToast(`Running ${suite} benchmark (${iterations.toLocaleString()} cycles)...`, 'info');
+
+      // Run on next tick to allow UI to breathe
+      setTimeout(() => {
+        const start = performance.now();
+
+        if (suite === 'json') {
+          const sample = { id: 101, name: "bench", tags: ["alpha", "beta"], nested: { valid: true } };
+          for (let i = 0; i < iterations; i++) {
+            const str = JSON.stringify(sample);
+            JSON.parse(str);
+          }
+        } else if (suite === 'regex') {
+          const reg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          const sampleEmail = "developer.benchmark+tester@cloud-service.internal";
+          for (let i = 0; i < iterations; i++) {
+            reg.test(sampleEmail);
+          }
+        } else if (suite === 'array') {
+          const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+          for (let i = 0; i < iterations; i++) {
+            arr.filter(n => n % 2 === 0).map(n => n * 2).reduce((a, b) => a + b, 0);
+          }
+        } else if (suite === 'sort') {
+          for (let i = 0; i < Math.min(iterations, 20000); i++) {
+            const list = [45, 12, 89, 2, 67, 34, 99, 1, 10];
+            list.sort((a, b) => a - b);
+          }
+        }
+
+        const duration = performance.now() - start;
+        const opsPerSec = Math.round((iterations / (duration / 1000)));
+
+        const box = document.getElementById('bench-result-box');
+        box.classList.remove('hidden');
+        document.getElementById('bench-time').innerText = `${duration.toFixed(2)} ms`;
+        document.getElementById('bench-ops').innerText = `${opsPerSec.toLocaleString()} ops/sec`;
+
+        showToast(`Benchmark complete: ${duration.toFixed(1)}ms`, 'success');
+        logDomEvent('BENCHMARK_COMPLETED', { suite, iterations, elapsedMs: duration.toFixed(2), opsPerSec });
+      }, 50);
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-medium text-white transition-all transform duration-300 translate-y-2 opacity-0';
+
+      if (type === 'success') toast.classList.add('bg-emerald-600');
+      else if (type === 'error') toast.classList.add('bg-rose-600');
+      else toast.classList.add('bg-brand-600');
+
+      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      // Auto dismiss
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function escapeHtml(string) {
+      if (!string) return '';
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
